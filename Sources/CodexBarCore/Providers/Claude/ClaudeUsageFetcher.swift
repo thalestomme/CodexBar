@@ -905,7 +905,11 @@ public struct ClaudeUsageFetcher: ClaudeUsageFetching, Sendable {
 
     private static func which(_ tool: String) -> String? {
         let process = Process()
+        #if os(Windows)
+        process.executableURL = URL(fileURLWithPath: "C:\\Windows\\System32\\where.exe")
+        #else
         process.executableURL = URL(fileURLWithPath: "/usr/bin/which")
+        #endif
         process.arguments = [tool]
         let pipe = Pipe()
         process.standardOutput = pipe
@@ -918,7 +922,13 @@ public struct ClaudeUsageFetcher: ClaudeUsageFetching, Sendable {
                 .trimmingCharacters(in: .whitespacesAndNewlines),
                 !path.isEmpty
         else { return nil }
+        #if os(Windows)
+        return path.split(separator: "\r\n").first.map(String.init)
+            ?? path.split(separator: "\n").first.map(String.init)
+            ?? path
+        #else
         return path
+        #endif
     }
 
     private static func readString(cmd: String, args: [String]) -> String? {

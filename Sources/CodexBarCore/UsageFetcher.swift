@@ -365,8 +365,13 @@ private final class CodexRPCClient: @unchecked Sendable {
             env: env)
 
         self.process.environment = env
+        #if os(Windows)
+        self.process.executableURL = URL(fileURLWithPath: resolvedExec)
+        self.process.arguments = arguments
+        #else
         self.process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
         self.process.arguments = [resolvedExec] + arguments
+        #endif
         self.process.standardInput = self.stdinPipe
         self.process.standardOutput = self.stdoutPipe
         self.process.standardError = self.stderrPipe

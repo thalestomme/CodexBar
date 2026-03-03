@@ -1,10 +1,11 @@
 #if canImport(Darwin)
 import Darwin
-#else
+#elseif canImport(Glibc)
 import Glibc
 #endif
 import Foundation
 
+#if !os(Windows)
 private enum TTYCommandRunnerActiveProcessRegistry {
     private static let lock = NSLock()
     private nonisolated(unsafe) static var processes: [pid_t: ProcessInfo] = [:]
@@ -76,6 +77,7 @@ private enum TTYCommandRunnerActiveProcessRegistry {
         self.lock.unlock()
     }
 }
+#endif // !os(Windows)
 
 /// Executes an interactive CLI inside a pseudo-terminal and returns all captured text.
 /// Keeps it minimal so we can reuse for Codex and Claude without tmux.
@@ -148,6 +150,11 @@ public struct TTYCommandRunner {
 
     public init() {}
 
+    #if os(Windows)
+    public static func terminateActiveProcessesForAppShutdown() {
+        // No PTY processes to track on Windows
+    }
+    #else
     public static func terminateActiveProcessesForAppShutdown() {
         let targets = TTYCommandRunnerActiveProcessRegistry.drainForShutdown()
         guard !targets.isEmpty else { return }
@@ -195,6 +202,7 @@ public struct TTYCommandRunner {
         }
         return resolvedTargets
     }
+    #endif
 
     struct RollingBuffer: Sendable {
         private let maxNeedle: Int
@@ -297,6 +305,9 @@ public struct TTYCommandRunner {
         options: Options = Options(),
         onURLDetected: (@Sendable () -> Void)? = nil) throws -> Result
     {
+        #if os(Windows)
+        throw Error.launchFailed("PTY not supported on Windows")
+        #else
         let resolved: String
         if FileManager.default.isExecutableFile(atPath: binary) {
             resolved = binary
@@ -767,6 +778,7 @@ public struct TTYCommandRunner {
         }
 
         return Result(text: text)
+        #endif // !os(Windows)
     }
 
     // swiftlint:enable function_body_length
@@ -779,7 +791,11 @@ public struct TTYCommandRunner {
 
     private static func runWhich(_ tool: String) -> String? {
         let proc = Process()
+        #if os(Windows)
+        proc.executableURL = URL(fileURLWithPath: "C:\\Windows\\System32\\where.exe")
+        #else
         proc.executableURL = URL(fileURLWithPath: "/usr/bin/which")
+        #endif
         proc.arguments = [tool]
         var env = ProcessInfo.processInfo.environment
         env["PATH"] = PathBuilder.effectivePATH(purposes: [.tty, .nodeTooling], env: env)
@@ -793,7 +809,14 @@ public struct TTYCommandRunner {
         guard let path = String(data: data, encoding: .utf8)?
             .trimmingCharacters(in: .whitespacesAndNewlines),
             !path.isEmpty else { return nil }
+        #if os(Windows)
+        // where.exe can return multiple lines; use the first result
+        return path.split(separator: "\r\n").first.map(String.init)
+            ?? path.split(separator: "\n").first.map(String.init)
+            ?? path
+        #else
         return path
+        #endif
     }
 
     /// Uses login-shell PATH when available so TTY probes match the user's shell configuration.
@@ -832,6 +855,7 @@ public struct TTYCommandRunner {
         return env
     }
 
+    #if !os(Windows)
     static func _test_resetTrackedProcesses() {
         TTYCommandRunnerActiveProcessRegistry.reset()
     }
@@ -863,4 +887,5 @@ public struct TTYCommandRunner {
     {
         self.resolveShutdownTargets(targets, hostProcessGroup: hostProcessGroup, groupResolver: groupResolver)
     }
+    #endif
 }

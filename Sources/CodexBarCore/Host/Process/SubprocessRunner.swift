@@ -1,6 +1,6 @@
 #if canImport(Darwin)
 import Darwin
-#else
+#elseif canImport(Glibc)
 import Glibc
 #endif
 import Foundation
@@ -82,11 +82,13 @@ public enum SubprocessRunner {
             throw SubprocessRunnerError.launchFailed(error.localizedDescription)
         }
 
+        #if !os(Windows)
         var processGroup: pid_t?
         let pid = process.processIdentifier
         if setpgid(pid, pid) == 0 {
             processGroup = pid
         }
+        #endif
 
         let exitCodeTask = Task<Int32, Never> {
             process.waitUntilExit()
@@ -144,6 +146,12 @@ public enum SubprocessRunner {
                 ])
             if process.isRunning {
                 process.terminate()
+                #if os(Windows)
+                let killDeadline = Date().addingTimeInterval(0.4)
+                while process.isRunning, Date() < killDeadline {
+                    Thread.sleep(forTimeInterval: 0.05)
+                }
+                #else
                 if let pgid = processGroup {
                     kill(-pgid, SIGTERM)
                 }
@@ -157,6 +165,7 @@ public enum SubprocessRunner {
                     }
                     kill(process.processIdentifier, SIGKILL)
                 }
+                #endif
             }
             exitCodeTask.cancel()
             stdoutTask.cancel()

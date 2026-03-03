@@ -1,6 +1,6 @@
 #if canImport(Darwin)
 import Darwin
-#else
+#elseif canImport(Glibc)
 import Glibc
 #endif
 import Foundation
@@ -22,6 +22,14 @@ actor CodexCLISession {
         }
     }
 
+    #if os(Windows)
+    // swiftlint:disable:next cyclomatic_complexity
+    func captureStatus(binary: String, timeout: TimeInterval, rows: UInt16, cols: UInt16) async throws -> String {
+        throw SessionError.launchFailed("PTY not supported on Windows")
+    }
+
+    func reset() {}
+    #else
     private var process: Process?
     private var primaryFD: Int32 = -1
     private var primaryHandle: FileHandle?
@@ -362,4 +370,5 @@ actor CodexCLISession {
         guard let handle = self.primaryHandle else { throw SessionError.processExited }
         try handle.write(contentsOf: data)
     }
+    #endif // !os(Windows)
 }

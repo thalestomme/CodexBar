@@ -82,8 +82,14 @@ public struct KiroStatusProbe: Sendable {
 
     public static func detectVersion() -> String? {
         let process = Process()
+        #if os(Windows)
+        guard let kiroBinary = TTYCommandRunner.which("kiro-cli") else { return nil }
+        process.executableURL = URL(fileURLWithPath: kiroBinary)
+        process.arguments = ["--version"]
+        #else
         process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
         process.arguments = ["kiro-cli", "--version"]
+        #endif
         let pipe = Pipe()
         process.standardOutput = pipe
         process.standardError = pipe

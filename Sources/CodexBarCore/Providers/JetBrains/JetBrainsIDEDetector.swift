@@ -93,6 +93,17 @@ public enum JetBrainsIDEDetector {
             "\(homeDir)/Library/Application Support/JetBrains",
             "\(homeDir)/Library/Application Support/Google",
         ]
+        #elseif os(Windows)
+        var paths: [String] = []
+        if let appData = ProcessInfo.processInfo.environment["APPDATA"] {
+            paths.append("\(appData)\\JetBrains")
+            paths.append("\(appData)\\Google")
+        }
+        if let localAppData = ProcessInfo.processInfo.environment["LOCALAPPDATA"] {
+            paths.append("\(localAppData)\\JetBrains")
+            paths.append("\(localAppData)\\Google")
+        }
+        return paths
         #else
         return [
             "\(homeDir)/.config/JetBrains",

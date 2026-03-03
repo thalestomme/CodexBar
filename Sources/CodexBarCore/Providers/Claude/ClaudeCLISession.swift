@@ -1,6 +1,6 @@
 #if canImport(Darwin)
 import Darwin
-#else
+#elseif canImport(Glibc)
 import Glibc
 #endif
 import Foundation
@@ -25,6 +25,21 @@ actor ClaudeCLISession {
         }
     }
 
+    #if os(Windows)
+    func capture(
+        subcommand: String,
+        binary: String,
+        timeout: TimeInterval,
+        idleTimeout: TimeInterval? = 3.0,
+        stopOnSubstrings: [String] = [],
+        settleAfterStop: TimeInterval = 0.25,
+        sendEnterEvery: TimeInterval? = nil) async throws -> String
+    {
+        throw SessionError.launchFailed("PTY not supported on Windows")
+    }
+
+    func reset() {}
+    #else
     private var process: Process?
     private var primaryFD: Int32 = -1
     private var primaryHandle: FileHandle?
@@ -432,4 +447,5 @@ actor ClaudeCLISession {
             }
         }
     }
+    #endif // !os(Windows)
 }

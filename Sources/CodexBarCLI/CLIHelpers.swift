@@ -2,8 +2,10 @@ import CodexBarCore
 import Commander
 #if canImport(Darwin)
 import Darwin
-#else
+#elseif canImport(Glibc)
 import Glibc
+#elseif os(Windows)
+import ucrt
 #endif
 import Foundation
 
@@ -59,7 +61,11 @@ extension CodexBarCLI {
         if noColor { return false }
         let env = ProcessInfo.processInfo.environment
         if env["TERM"]?.lowercased() == "dumb" { return false }
+        #if os(Windows)
+        return _isatty(_fileno(stdout)) != 0
+        #else
         return isatty(STDOUT_FILENO) == 1
+        #endif
     }
 
     static func detectVersion(for provider: UsageProvider, browserDetection: BrowserDetection) -> String? {

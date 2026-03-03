@@ -2,8 +2,10 @@ import Foundation
 import Logging
 #if canImport(Darwin)
 import Darwin
-#else
+#elseif canImport(Glibc)
 import Glibc
+#elseif os(Windows)
+import ucrt
 #endif
 
 struct JSONStderrLogHandler: LogHandler {
@@ -73,7 +75,11 @@ extension JSONStderrLogHandler {
         let bytes = Array(text.utf8)
         bytes.withUnsafeBytes { buffer in
             guard let baseAddress = buffer.baseAddress else { return }
+            #if os(Windows)
+            _ = _write(2, baseAddress, CUnsignedInt(buffer.count))
+            #else
             _ = write(STDERR_FILENO, baseAddress, buffer.count)
+            #endif
         }
     }
 }

@@ -98,7 +98,7 @@ pub fn resolve_cli_path(settings_path: Option<&str>) -> Option<PathBuf> {
     // 2. Repo build directory (release then debug)
     let repo_root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
     for profile in ["release", "debug"] {
-        let candidate = repo_root.join(format!(".build/{}/CodexBarCLI", profile));
+        let candidate = repo_root.join(format!(".build/{}/CodexBarCLI{}", profile, std::env::consts::EXE_SUFFIX));
         if candidate.exists() {
             return Some(candidate);
         }
@@ -109,9 +109,10 @@ pub fn resolve_cli_path(settings_path: Option<&str>) -> Option<PathBuf> {
 }
 
 fn which_in_path(name: &str) -> Option<PathBuf> {
+    let exe_name = format!("{}{}", name, std::env::consts::EXE_SUFFIX);
     std::env::var_os("PATH").and_then(|paths| {
         std::env::split_paths(&paths)
-            .map(|dir| dir.join(name))
+            .map(|dir| dir.join(&exe_name))
             .find(|p| p.exists())
     })
 }
@@ -132,17 +133,17 @@ fn provider_env_var(provider_id: &str) -> Option<&'static str> {
 /// On non-macOS, `--source auto` tries web/cookie auth first and fails.
 /// This maps each provider to its best platform-agnostic source.
 #[cfg(not(target_os = "macos"))]
-fn linux_source_override(provider_id: &str) -> Option<&'static str> {
+fn non_macos_source_override(provider_id: &str) -> Option<&'static str> {
     match provider_id {
         "claude" => Some("oauth"),
         "codex" | "augment" | "kilo" | "jetbrains" => Some("cli"),
-        "gemini" | "copilot" | "openrouter" | "minimax" | "warp" => Some("api"),
+        "gemini" | "copilot" | "openrouter" | "minimax" | "warp" | "kimi" => Some("api"),
         _ => None,
     }
 }
 
 #[cfg(target_os = "macos")]
-fn linux_source_override(_provider_id: &str) -> Option<&'static str> {
+fn non_macos_source_override(_provider_id: &str) -> Option<&'static str> {
     None
 }
 
@@ -229,7 +230,7 @@ pub async fn fetch_usage_from_cli(
     let mut by_source: HashMap<&str, Vec<&str>> = HashMap::new();
 
     for id in enabled_providers {
-        if let Some(source) = linux_source_override(id) {
+        if let Some(source) = non_macos_source_override(id) {
             by_source.entry(source).or_default().push(id.as_str());
         } else {
             default_providers.push(id.as_str());

@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CodexBar</title>
+    <link rel="stylesheet" href="./src/styles/main.css" />
+    <link rel="stylesheet" href="./src/styles/progress.css" />
+  </head>
+  <body>
+    <div id="app">
+      <div id="loading" class="loading">Loading usage data...</div>
+      <div id="error" class="error" hidden></div>
+      <div id="settings" hidden></div>
+      <div id="content" hidden>
+        <div id="tabs"></div>
+        <div id="card"></div>
+        <div id="footer" class="footer">
+          <button id="btn-refresh" class="footer-link" title="Refresh">Refresh</button>
+          <button id="btn-settings" class="footer-link" title="Settings">Settings</button>
+          <button id="btn-quit" class="footer-link" title="Quit">Quit</button>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="./src/main.ts"></script>
+  </body>
+</html>

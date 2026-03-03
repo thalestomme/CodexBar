@@ -30,12 +30,19 @@ debug_*.swift
 # Misc
 .DS_Store
 .vscode/
+.idea/
+.claude/
 .codex/environments/
 .swiftpm-cache/
 
 # Debug/analysis docs
 docs/*-analysis.md
 docs/.astro/
+
+# Tauri app
+tauri-app/node_modules/
+tauri-app/dist/
+tauri-app/src-tauri/target/
 
 # Swift Package Manager metadata (leave sources tracked)
 # Packages/

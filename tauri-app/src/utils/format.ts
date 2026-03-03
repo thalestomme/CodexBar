@@ -90,6 +90,14 @@ export function providerDisplayName(id: string): string {
   return names[id.toLowerCase()] ?? id.charAt(0).toUpperCase() + id.slice(1);
 }
 
+/** Format credits remaining, e.g. 542.5 → "542 remaining", 0.5 → "0.5 remaining" */
+export function formatCredits(remaining: number): string {
+  const display = remaining >= 10 ? Math.round(remaining).toString()
+    : remaining >= 1 ? remaining.toFixed(1)
+    : remaining.toFixed(2);
+  return `${display} remaining`;
+}
+
 /** Rate window label by slot. */
 export function windowLabel(
   slot: "primary" | "secondary" | "tertiary",

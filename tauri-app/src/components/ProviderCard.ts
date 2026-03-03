@@ -1,8 +1,8 @@
-import type { ProviderPayload } from "../types";
+import type { CreditsSnapshot, ProviderPayload } from "../types";
 import { renderHeader } from "./Header";
 import { renderProgressBar } from "./ProgressBar";
 import { renderActionLinks } from "./ActionLinks";
-import { formatCurrency, windowLabel } from "../utils/format";
+import { formatCredits, formatCurrency, windowLabel } from "../utils/format";
 
 /** Providers that support CLI-based auth on Linux. */
 const CLI_AUTH_PROVIDERS: Record<string, string> = {
@@ -15,6 +15,51 @@ const CLI_AUTH_PROVIDERS: Record<string, string> = {
 
 /** Providers that are truly macOS-only (browser cookie auth, no CLI alternative). */
 const MACOS_ONLY_PROVIDERS = new Set(["cursor", "factory", "ollama"]);
+
+const CREDITS_FULL_SCALE = 1000;
+
+/** Determine color class for credits (inverted: green = lots remaining, red = low). */
+function creditsColorClass(remaining: number): string {
+  const pct = (remaining / CREDITS_FULL_SCALE) * 100;
+  if (pct > 75) return "progress-green";
+  if (pct > 25) return "progress-yellow";
+  return "progress-red";
+}
+
+/** Render a credits progress bar section. */
+function renderCreditsBar(container: HTMLElement, credits: CreditsSnapshot): void {
+  if (credits.remaining <= 0) return;
+
+  const row = document.createElement("div");
+  row.className = "progress-row";
+
+  const header = document.createElement("div");
+  header.className = "progress-header";
+
+  const labelEl = document.createElement("span");
+  labelEl.className = "progress-label";
+  labelEl.textContent = "Credits";
+
+  const statsEl = document.createElement("span");
+  statsEl.className = "progress-stats";
+  statsEl.textContent = `${formatCredits(credits.remaining)}${String.fromCharCode(160, 160, 160, 160)}1K tokens`;
+
+  header.appendChild(labelEl);
+  header.appendChild(statsEl);
+
+  const track = document.createElement("div");
+  track.className = "progress-track";
+
+  const fillPct = Math.min(100, (credits.remaining / CREDITS_FULL_SCALE) * 100);
+  const fill = document.createElement("div");
+  fill.className = `progress-fill ${creditsColorClass(credits.remaining)}`;
+  fill.style.width = `${fillPct}%`;
+
+  track.appendChild(fill);
+  row.appendChild(header);
+  row.appendChild(track);
+  container.appendChild(row);
+}
 
 /** Render a full provider card into the given container. */
 export function renderProviderCard(
@@ -101,6 +146,11 @@ export function renderProviderCard(
     if (rw) {
       renderProgressBar(card, windowLabel(slot, payload.provider), rw);
     }
+  }
+
+  // Credits bar
+  if (payload.credits) {
+    renderCreditsBar(card, payload.credits);
   }
 
   // Provider cost (extra usage)
